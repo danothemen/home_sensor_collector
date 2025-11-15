@@ -5,8 +5,12 @@
   "main": "dist/index.js",
   "scripts": {
     "build": "tsc",
-    "start": "node dist/index.js",
-    "dev": "ts-node-dev --respawn --transpile-only src/index.ts",
+    "start": "node dist/collector.js",
+    "start:collector": "node dist/collector.js",
+    "start:retriever": "node dist/retriever.js",
+    "dev": "ts-node-dev --respawn --transpile-only src/collector.ts",
+    "dev:collector": "ts-node-dev --respawn --transpile-only src/collector.ts",
+    "dev:retriever": "ts-node-dev --respawn --transpile-only src/retriever.ts",
     "type-check": "tsc --noEmit"
   },
   "keywords": [

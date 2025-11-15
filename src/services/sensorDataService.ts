@@ -41,3 +41,15 @@ export async function createSensorData(
   const result = await pool.query(query, values);
   return result.rows[0];
 }
+
+export async function getSensorData(): Promise<SensorData[]> {
+  const query = `
+    SELECT *
+    FROM sensor_data
+    ORDER BY reported_timestamp DESC
+    LIMIT 100
+  `;
+
+  const result = await pool.query(query);
+  return result.rows;
+}

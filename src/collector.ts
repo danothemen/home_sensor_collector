@@ -1,5 +1,4 @@
 import express, { Request, Response } from "express";
-import cors from "cors";
 import dotenv from "dotenv";
 import { pool } from "./config/database";
 import { runMigrations } from "./migrations/runMigrations";
@@ -11,7 +10,7 @@ import {
 dotenv.config();
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.COLLECTOR_PORT || 3000;
 
 // Middleware
 app.use((req, res, next) => {
@@ -41,33 +40,6 @@ app.use((req, res, next) => {
 });
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
-
-// Health check endpoint
-app.get("/health", async (req: Request, res: Response) => {
-  try {
-    // Test database connection
-    await pool.query("SELECT NOW()");
-    res.status(200).json({
-      status: "healthy",
-      database: "connected",
-      timestamp: new Date().toISOString(),
-    });
-  } catch (error) {
-    res.status(500).json({
-      status: "unhealthy",
-      database: "disconnected",
-      error: error instanceof Error ? error.message : "Unknown error",
-    });
-  }
-});
-
-// Example API route
-app.get("/api", (req: Request, res: Response) => {
-  res.json({
-    message: "Welcome to ChickenServer API",
-    version: "1.0.0",
-  });
-});
 
 // Sensor data endpoint
 app.post("/api/sensor-data", async (req: Request, res: Response) => {
@@ -142,11 +114,11 @@ async function startServer() {
 
     // Start server
     app.listen(PORT, () => {
-      console.log(`Server is running on port ${PORT}`);
+      console.log(`Collector server is running on port ${PORT}`);
       console.log(`Environment: ${process.env.NODE_ENV || "development"}`);
     });
   } catch (error) {
-    console.error("Failed to start server:", error);
+    console.error("Failed to start collector server:", error);
     process.exit(1);
   }
 }

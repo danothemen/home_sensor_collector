@@ -54,8 +54,7 @@ const WaterTempChart: React.FC = () => {
         console.error("Error fetching sensor data:", error);
       }
     };
-
-    fetchData();
+    setInterval(fetchData, 60000);
   }, []);
   console.log("Temp Chart");
   return (

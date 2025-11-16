@@ -1,3 +1,21 @@
+# Stage 1: Build the React frontend
+FROM node:20-alpine AS frontend-builder
+
+WORKDIR /app/frontend
+
+# Copy frontend package files
+COPY frontend/package*.json ./
+
+# Install frontend dependencies
+RUN npm ci
+
+# Copy the rest of the frontend source code
+COPY frontend/ ./
+
+# Build the frontend
+RUN npm run build
+
+# Stage 2: Build the backend and serve the frontend
 FROM node:20-alpine
 
 WORKDIR /app
@@ -13,6 +31,9 @@ COPY . .
 
 # Build TypeScript
 RUN npm run build
+
+# Copy the built frontend from the first stage
+COPY --from=frontend-builder /app/frontend/build /frontend/build
 
 # Expose port
 EXPOSE 3001

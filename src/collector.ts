@@ -1,4 +1,5 @@
 import express, { Request, Response } from "express";
+import cors from "cors";
 import dotenv from "dotenv";
 import { pool } from "./config/database";
 import { runMigrations } from "./migrations/runMigrations";
@@ -40,6 +41,7 @@ app.use((req, res, next) => {
 });
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(cors());
 
 // Sensor data endpoint
 app.post("/api/sensor-data", async (req: Request, res: Response) => {

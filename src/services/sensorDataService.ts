@@ -42,14 +42,24 @@ export async function createSensorData(
   return result.rows[0];
 }
 
-export async function getSensorData(): Promise<SensorData[]> {
-  const query = `
-    SELECT *
-    FROM sensor_data
-    ORDER BY reported_timestamp DESC
-    LIMIT 100
-  `;
-
-  const result = await pool.query(query);
-  return result.rows;
+export async function getSensorData(since?: Date): Promise<SensorData[]> {
+  if (since) {
+    const query = `
+      SELECT *
+      FROM sensor_data
+      WHERE reported_timestamp >= $1
+      ORDER BY reported_timestamp ASC
+    `;
+    const result = await pool.query(query, [since]);
+    return result.rows;
+  } else {
+    const query = `
+      SELECT *
+      FROM sensor_data
+      ORDER BY reported_timestamp ASC
+      LIMIT 100
+    `;
+    const result = await pool.query(query);
+    return result.rows;
+  }
 }

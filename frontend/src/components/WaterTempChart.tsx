@@ -24,6 +24,7 @@ ChartJS.register(
 
 const WaterTempChart: React.FC = () => {
   const [chartData, setChartData] = useState<any>(null);
+  const [mostRecentDataPoint, setMostRecentDataPoint] = useState<any | null>(null)
 
   useEffect(() => {
     const fetchData = async () => {
@@ -32,6 +33,8 @@ const WaterTempChart: React.FC = () => {
           "/api/sensor-data"
         );
         const data = response.data.data;
+
+        setMostRecentDataPoint(data?.[data.length -1 ] ?? null)
 
         const chartLabels = data.map((d: any) =>
           new Date(d.reported_timestamp).toLocaleTimeString()
@@ -61,6 +64,8 @@ const WaterTempChart: React.FC = () => {
   return (
     <div>
       <h2>Water Temperature (Last 24 Hours)</h2>
+      <div>Current: {mostRecentDataPoint?.water_temperature ?? null}°F</div>
+      <div>Reported At: {mostRecentDataPoint?.reported_timestamp ? new Date(mostRecentDataPoint.reported_timestamp).toLocaleTimeString() : null}</div>
       {chartData ? <Line data={chartData} /> : <p>Loading chart...</p>}
     </div>
   );

@@ -37,6 +37,14 @@ const WaterTempChart: React.FC = () => {
             text: "Water Temperature and Relay Status (Last 24 Hours)",
           },
           xAxis: {
+            labels: {
+              formatter: (ctx) => {
+                console.log("CTX", ctx);
+                return new Date(ctx.pos).toLocaleTimeString("en-us", {
+                  timeStyle: "short",
+                });
+              },
+            },
             type: "datetime",
           },
           yAxis: [
@@ -81,6 +89,11 @@ const WaterTempChart: React.FC = () => {
     };
     setInterval(fetchData, 60000);
     fetchData();
+    Highcharts.setOptions({
+      time: {
+        timezone: undefined,
+      },
+    });
   }, []);
 
   return (

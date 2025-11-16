@@ -1,58 +1,80 @@
 import React, { useEffect, useState } from "react";
-import { Line } from "react-chartjs-2";
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Title,
-  Tooltip,
-  Legend,
-} from "chart.js";
+import Highcharts from "highcharts";
+import HighchartsReact from "highcharts-react-official";
 import axios from "axios";
-
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  PointElement,
-  LineElement,
-  Title,
-  Tooltip,
-  Legend
-);
+import { Stack, Typography } from "@mui/material";
 
 const WaterTempChart: React.FC = () => {
-  const [chartData, setChartData] = useState<any>(null);
-  const [mostRecentDataPoint, setMostRecentDataPoint] = useState<any | null>(null)
+  const [chartOptions, setChartOptions] = useState<Highcharts.Options | null>(
+    null
+  );
+  const [mostRecentDataPoint, setMostRecentDataPoint] = useState<any | null>(
+    null
+  );
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         const response = await axios.get(
-          "/api/sensor-data"
+          "http://192.168.0.108:3001/api/sensor-data"
         );
         const data = response.data.data;
 
-        setMostRecentDataPoint(data?.[data.length -1 ] ?? null)
+        setMostRecentDataPoint(data?.[data.length - 1] ?? null);
 
-        const chartLabels = data.map((d: any) =>
-          new Date(d.reported_timestamp).toLocaleTimeString()
-        );
-        const chartValues = data.map((d: any) => d.water_temperature);
+        const chartData = data.map((d: any) => [
+          new Date(d.reported_timestamp).getTime(),
+          d.water_temperature,
+        ]);
 
-        setChartData({
-          labels: chartLabels,
-          datasets: [
+        const relayOnData = data.map((d: any) => [
+          new Date(d.reported_timestamp).getTime(),
+          d.relay_on ? 1 : 0,
+        ]);
+
+        setChartOptions({
+          title: {
+            text: "Water Temperature and Relay Status (Last 24 Hours)",
+          },
+          xAxis: {
+            type: "datetime",
+          },
+          yAxis: [
             {
-              label: "Water Temperature",
-              data: chartValues,
-              borderColor: "rgb(75, 192, 192)",
-              tension: 0.1,
+              title: {
+                text: "Water Temperature",
+              },
+            },
+            {
+              title: {
+                text: "Relay Status",
+              },
+              opposite: true,
+              min: 0,
+              max: 1,
+              tickInterval: 1,
             },
           ],
+          series: [
+            {
+              name: "Water Temperature",
+              type: "line",
+              data: chartData,
+              yAxis: 0,
+            },
+            {
+              name: "Relay On",
+              type: "area",
+              step: "left",
+              data: relayOnData,
+              yAxis: 1,
+              color: "#ff9b8277",
+            },
+          ],
+          tooltip: {
+            xDateFormat: "%A, %b %e, %H:%M:%S", // Format for the x-axis (time)
+          },
         });
-        console.log("Fetched data");
       } catch (error) {
         console.error("Error fetching sensor data:", error);
       }
@@ -60,14 +82,43 @@ const WaterTempChart: React.FC = () => {
     setInterval(fetchData, 60000);
     fetchData();
   }, []);
-  console.log("Temp Chart");
+
   return (
-    <div>
-      <h2>Water Temperature (Last 24 Hours)</h2>
-      <div>Current: {mostRecentDataPoint?.water_temperature ?? null}°F</div>
-      <div>Reported At: {mostRecentDataPoint?.reported_timestamp ? new Date(mostRecentDataPoint.reported_timestamp).toLocaleTimeString() : null}</div>
-      {chartData ? <Line data={chartData} /> : <p>Loading chart...</p>}
-    </div>
+    <Stack sx={{ px: 1 }}>
+      <Stack
+        direction={"row"}
+        gap={1}
+        justifyContent={"space-evenly"}
+        sx={{
+          borderBottomStyle: "solid",
+          borderBottomColor: "grey",
+          borderBottomWidth: "1px",
+        }}
+      >
+        <Typography>
+          Reported At:{" "}
+          {mostRecentDataPoint?.reported_timestamp
+            ? new Date(
+                mostRecentDataPoint.reported_timestamp
+              ).toLocaleTimeString()
+            : null}
+        </Typography>
+        <Typography>
+          Temp: {mostRecentDataPoint?.water_temperature ?? null}°F
+        </Typography>
+        <Typography>
+          Heater: {mostRecentDataPoint?.relay_on ? "On" : "Off"}
+        </Typography>
+        <Typography>
+          Overridden: {mostRecentDataPoint?.override_active ? "True" : "False"}
+        </Typography>
+      </Stack>
+      {chartOptions ? (
+        <HighchartsReact highcharts={Highcharts} options={chartOptions} />
+      ) : (
+        <Typography>Loading chart...</Typography>
+      )}
+    </Stack>
   );
 };
 

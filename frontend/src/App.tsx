@@ -1,14 +1,11 @@
-import React from "react";
-import "./App.css";
+import { Box } from "@mui/material";
 import WaterTempChart from "./components/WaterTempChart";
 
 function App() {
   return (
-    <div className="App">
-      <main>
-        <WaterTempChart />
-      </main>
-    </div>
+    <Box>
+      <WaterTempChart />
+    </Box>
   );
 }
 

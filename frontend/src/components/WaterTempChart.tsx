@@ -29,7 +29,7 @@ const WaterTempChart: React.FC = () => {
     const fetchData = async () => {
       try {
         const response = await axios.get(
-          "http://localhost:3001/api/sensor-data"
+          "/api/sensor-data"
         );
         const data = response.data.data;
 
@@ -55,6 +55,7 @@ const WaterTempChart: React.FC = () => {
       }
     };
     setInterval(fetchData, 60000);
+    fetchData();
   }, []);
   console.log("Temp Chart");
   return (

@@ -15,9 +15,7 @@ const WaterTempChart: React.FC = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await axios.get(
-          "http://192.168.0.108:3001/api/sensor-data"
-        );
+        const response = await axios.get("/api/sensor-data");
         const data = response.data.data;
 
         setMostRecentDataPoint(data?.[data.length - 1] ?? null);
@@ -32,19 +30,16 @@ const WaterTempChart: React.FC = () => {
           d.relay_on ? 1 : 0,
         ]);
 
+        const outsideAirTemperatureData = data.map((d: any) => [
+          new Date(d.reported_timestamp).getTime(),
+          d.outside_air_temperature,
+        ]);
+
         setChartOptions({
           title: {
             text: "Water Temperature and Relay Status (Last 24 Hours)",
           },
           xAxis: {
-            labels: {
-              formatter: (ctx) => {
-                console.log("CTX", ctx);
-                return new Date(ctx.pos).toLocaleTimeString("en-us", {
-                  timeStyle: "short",
-                });
-              },
-            },
             type: "datetime",
           },
           yAxis: [
@@ -68,6 +63,12 @@ const WaterTempChart: React.FC = () => {
               name: "Water Temperature",
               type: "line",
               data: chartData,
+              yAxis: 0,
+            },
+            {
+              name: "Outside Air Temperature",
+              type: "line",
+              data: outsideAirTemperatureData,
               yAxis: 0,
             },
             {
@@ -117,7 +118,10 @@ const WaterTempChart: React.FC = () => {
             : null}
         </Typography>
         <Typography>
-          Temp: {mostRecentDataPoint?.water_temperature ?? null}°F
+          Air Temp: {mostRecentDataPoint?.outside_air_temperature ?? null}°F
+        </Typography>
+        <Typography>
+          Water Temp: {mostRecentDataPoint?.water_temperature ?? null}°F
         </Typography>
         <Typography>
           Heater: {mostRecentDataPoint?.relay_on ? "On" : "Off"}

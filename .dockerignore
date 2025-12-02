@@ -7,3 +7,8 @@ dist
 README.md
 .vscode
 
+frontend/build
+frontend/node_modules
+
+webcam-streamer
+

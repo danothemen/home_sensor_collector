@@ -68,8 +68,6 @@ services:
     ports:
       - "8080:80"
       - "1935:1935"
-    volumes:
-      - ./frontend/build:/usr/share/nginx/html
     depends_on:
       - retriever
       - db

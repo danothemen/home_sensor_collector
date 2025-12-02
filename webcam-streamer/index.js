@@ -1,4 +1,4 @@
-const av = require('node-av');
+const { spawn } = require('child_process');
 const ffmpegPath = require('@ffmpeg-installer/ffmpeg').path;
 const { exec } = require('child_process');
 
@@ -7,19 +7,30 @@ const RTMP_URL = 'rtmp://localhost:1935/live/stream';
 function getVideoDevice(callback) {
   const command = `"${ffmpegPath}" -list_devices true -f dshow -i dummy`;
 
-  exec(command, (error, stdout, stderr) => {
-    if (error) {
-      console.error(`Error listing devices: ${error.message}`);
-      return callback(error);
-    }
-
+  exec(command, (_error, _stdout, stderr) => {
+    // ffmpeg -list_devices always exits with error, but the output is still valid
+    // Parse stderr regardless of error status
     const output = stderr.toString();
     const lines = output.split('\n');
-    
+
+    let inVideoSection = false;
     for (const line of lines) {
-      if (line.includes('(video)')) {
+      // Start of video devices section
+      if (line.includes('DirectShow video devices')) {
+        inVideoSection = true;
+        continue;
+      }
+
+      // End of video devices section
+      if (line.includes('DirectShow audio devices')) {
+        inVideoSection = false;
+        continue;
+      }
+
+      // Look for device names in video section
+      if (inVideoSection && line.includes('"')) {
         const match = line.match(/"([^"]+)"/);
-        if (match && match[1]) {
+        if (match && match[1] && !line.includes('Alternative name')) {
           return callback(null, match[1]);
         }
       }
@@ -29,81 +40,60 @@ function getVideoDevice(callback) {
   });
 }
 
-async function startStream(videoDevice) {
+function startStream(videoDevice) {
     console.log(`Starting stream from device: ${videoDevice}`);
-    
-    try {
-        const demuxer = new av.Demuxer({
-            name: 'dshow',
-            options: { video_size: '1280x720', framerate: '30' }
-        });
-        demuxer.open(`video=${videoDevice}`);
 
-        const videoDecoder = new av.Decoder(demuxer.streams[0].codec);
-        const videoEncoder = new av.Encoder({
-            name: 'libx265', // Changed to h265
-            width: 1280, // Changed to 720p
-            height: 720, // Changed to 720p
-            pixelFormat: 'yuv420p',
-            timeBase: [1, 30],
-            bitRate: 2.5e6,
-            gopSize: 10,
-            maxBFrames: 1,
-            threadCount: 1,
-            preset: 'veryfast',
-            tune: 'zerolatency'
-        });
+    // FFmpeg arguments for capturing from DirectShow and streaming to RTMP
+    const args = [
+        '-f', 'dshow',
+        '-video_size', '1280x720',
+        '-framerate', '30',
+        '-i', `video=${videoDevice}`,
+        '-c:v', 'libx264',
+        '-preset', 'ultrafast',
+        '-tune', 'zerolatency',
+        '-b:v', '2500k',
+        '-maxrate', '2500k',
+        '-bufsize', '5000k',
+        '-g', '60',
+        '-pix_fmt', 'yuv420p',
+        '-f', 'flv',
+        RTMP_URL
+    ];
 
-        const audioDecoder = new av.Decoder(demuxer.streams[1].codec);
-        const audioEncoder = new av.Encoder({
-            name: 'aac',
-            sampleRate: demuxer.streams[1].codec.sampleRate,
-            channelLayout: demuxer.streams[1].codec.channelLayout,
-            bitRate: 128e3
-        });
+    console.log(`Running: ${ffmpegPath} ${args.join(' ')}`);
 
-        const muxer = new av.Muxer({ name: 'flv', output: RTMP_URL });
-        const videoStream = muxer.addStream(videoEncoder);
-        const audioStream = muxer.addStream(audioEncoder);
+    const ffmpegProcess = spawn(ffmpegPath, args, {
+        stdio: ['ignore', 'pipe', 'pipe']
+    });
 
-        muxer.open();
+    ffmpegProcess.stdout.on('data', (data) => {
+        console.log(`FFmpeg stdout: ${data}`);
+    });
 
-        demuxer.on('data', async (packet) => {
-            if (packet.streamIndex === videoStream.index) {
-                const frames = videoDecoder.decode(packet);
-                for (const frame of frames) {
-                    const encodedPackets = videoEncoder.encode(frame);
-                    for (const encodedPacket of encodedPackets) {
-                        muxer.write(encodedPacket, videoStream);
-                    }
-                }
-            } else if (packet.streamIndex === audioStream.index) {
-                const frames = audioDecoder.decode(packet);
-                for (const frame of frames) {
-                    const encodedPackets = audioEncoder.encode(frame);
-                    for (const encodedPacket of encodedPackets) {
-                        muxer.write(encodedPacket, audioStream);
-                    }
-                }
-            }
-        });
+    ffmpegProcess.stderr.on('data', (data) => {
+        // FFmpeg outputs progress info to stderr
+        const message = data.toString();
+        // Only log important messages, not every frame
+        if (message.includes('error') || message.includes('Error') ||
+            message.includes('Stream') || message.includes('Press [q]')) {
+            console.log(message.trim());
+        }
+    });
 
-        demuxer.on('error', (err) => {
-            console.error('Demuxer error:', err);
-            restartStream(videoDevice);
-        });
-
-        muxer.on('error', (err) => {
-            console.error('Muxer error:', err);
-            restartStream(videoDevice);
-        });
-
-        console.log('Streaming started...');
-
-    } catch (err) {
-        console.error('An error occurred:', err);
+    ffmpegProcess.on('error', (err) => {
+        console.error('Failed to start FFmpeg:', err);
         restartStream(videoDevice);
-    }
+    });
+
+    ffmpegProcess.on('close', (code) => {
+        console.log(`FFmpeg process exited with code ${code}`);
+        restartStream(videoDevice);
+    });
+
+    console.log('Streaming started...');
+
+    return ffmpegProcess;
 }
 
 function restartStream(videoDevice) {

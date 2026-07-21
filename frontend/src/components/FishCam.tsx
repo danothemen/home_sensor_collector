@@ -5,7 +5,7 @@ const FishCam = () => {
   return (
     <div>
       <h2>Fish Camera</h2>
-      <ReactPlayer src="/hls/stream.m3u8" playing controls />
+      <ReactPlayer src={`${process.env.PUBLIC_URL}/hls/stream.m3u8`} playing controls />
     </div>
   );
 };

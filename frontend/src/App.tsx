@@ -5,7 +5,7 @@ import FishCam from "./components/FishCam";
 
 function App() {
   return (
-    <Router>
+    <Router basename={process.env.PUBLIC_URL}>
       <Box>
         <AppBar position="static">
           <Toolbar>

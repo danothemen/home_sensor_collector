@@ -15,7 +15,7 @@ const WaterTempChart: React.FC = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const response = await axios.get("/api/sensor-data");
+        const response = await axios.get(`${process.env.PUBLIC_URL}/api/sensor-data`);
         const data = response.data.data;
 
         setMostRecentDataPoint(data?.[data.length - 1] ?? null);

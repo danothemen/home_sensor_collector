@@ -22,5 +22,7 @@ FROM alfg/nginx-rtmp:latest
 COPY nginx.conf /etc/nginx/nginx.conf
 COPY nginx.conf /etc/nginx/nginx.conf.template
 
-# Copy built React app from builder stage to the correct location
-COPY --from=builder /app/build /www/static
+# Copy built React app from builder stage to the correct location. Nested under
+# home_sensor_collector/ so it lines up with the /home_sensor_collector/ prefix
+# nginx.conf serves it at (matches homepage in frontend/package.json).
+COPY --from=builder /app/build /www/static/home_sensor_collector
